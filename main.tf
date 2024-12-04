@@ -28,7 +28,7 @@ resource "aws_instance" "main" {
 # Create S3 bucket if enabled
 resource "aws_s3_bucket" "main" {
   count = var.create_s3 ? 1 : 0
-  bucket = "my-terraform-bucket-12343445433"
+  bucket = "my-terraform-bucket-19087887"
   acl    = "private"
 }
 
