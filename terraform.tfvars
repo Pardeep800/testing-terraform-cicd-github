@@ -1,0 +1,9 @@
+aws_region         = "us-east-1"
+create_vpc         = true
+create_ec2         = true
+create_s3          = true
+create_asg         = true
+ami_id             = "ami-0866a3c8686eaeeba"  # Replace with your AMI ID
+subnet_id          = "subnet-057e4e2e3f3b55fe1"        # Replace with your Subnet ID
+security_group_id  = "sg-02868a905c1e1e36e"            # Replace with your Security Group ID
+key_pair_name      = "rupa"            # Replace with your Key Pair Name
