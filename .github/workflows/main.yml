@@ -1,0 +1,78 @@
+name: Terraform CI/CD Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_vpc:
+        description: "Set to true to create a VPC"
+        required: true
+        default: "false"
+      create_ec2:
+        description: "Set to true to create an EC2 instance"
+        required: true
+        default: "false"
+      create_s3:
+        description: "Set to true to create an S3 bucket"
+        required: true
+        default: "false"
+      create_asg:
+        description: "Set to true to create an Auto Scaling Group"
+        required: true
+        default: "false"
+      ami_id:
+        description: "Enter the AMI ID for EC2"
+        required: true
+        default: "ami-0866a3c8686eaeeba"
+      subnet_id:
+        description: "Enter the Subnet ID"
+        required: true
+        default: "subnet-057e4e2e3f3b55fe1"
+      security_group_id:
+        description: "Enter the Security Group ID"
+        required: true
+        default: "sg-02868a905c1e1e36e"
+      key_pair_name:
+        description: "Enter the Key Pair Name"
+        required: true
+        default: "rupa"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Write Terraform Vars File
+      run: |
+        echo "create_vpc = \"${{ github.event.inputs.create_vpc }}\"" > terraform.tfvars
+        echo "create_ec2 = \"${{ github.event.inputs.create_ec2 }}\"" >> terraform.tfvars
+        echo "create_s3 = \"${{ github.event.inputs.create_s3 }}\"" >> terraform.tfvars
+        echo "create_asg = \"${{ github.event.inputs.create_asg }}\"" >> terraform.tfvars
+        echo "ami_id = \"${{ github.event.inputs.ami_id }}\"" >> terraform.tfvars
+        echo "subnet_id = \"${{ github.event.inputs.subnet_id }}\"" >> terraform.tfvars
+        echo "security_group_id = \"${{ github.event.inputs.security_group_id }}\"" >> terraform.tfvars
+        echo "key_pair_name = \"${{ github.event.inputs.key_pair_name }}\"" >> terraform.tfvars
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Plan
+      run: terraform plan -var-file=terraform.tfvars
+
+    - name: Terraform Apply
+      if: github.event_name == 'workflow_dispatch'
+      run: terraform apply -auto-approve -var-file=terraform.tfvars
