@@ -4,37 +4,37 @@ on:
   workflow_dispatch:
     inputs:
       create_vpc:
-        description: "Do you want to create a VPC?"
+        description: "Set to true to create a VPC"
         required: true
         default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
       create_ec2:
-        description: "Do you want to create an EC2 instance?"
+        description: "Set to true to create an EC2 instance"
         required: true
         default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
       create_s3:
-        description: "Do you want to create an S3 bucket?"
+        description: "Set to true to create an S3 bucket"
         required: true
         default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
       create_asg:
-        description: "Do you want to create an Auto Scaling Group?"
+        description: "Set to true to create an Auto Scaling Group"
         required: true
         default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
+      ami_id:
+        description: "Enter the AMI ID for EC2"
+        required: true
+        default: "ami-0866a3c8686eaeeba"
+      subnet_id:
+        description: "Enter the Subnet ID"
+        required: true
+        default: "subnet-057e4e2e3f3b55fe1"
+      security_group_id:
+        description: "Enter the Security Group ID"
+        required: true
+        default: "sg-02868a905c1e1e36e"
+      key_pair_name:
+        description: "Enter the Key Pair Name"
+        required: true
+        default: "rupa"
 
 jobs:
   terraform:
@@ -49,31 +49,30 @@ jobs:
       with:
         terraform_version: 1.5.0
 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Write Terraform Vars File
+      run: |
+        echo "create_vpc = \"${{ github.event.inputs.create_vpc }}\"" > terraform.tfvars
+        echo "create_ec2 = \"${{ github.event.inputs.create_ec2 }}\"" >> terraform.tfvars
+        echo "create_s3 = \"${{ github.event.inputs.create_s3 }}\"" >> terraform.tfvars
+        echo "create_asg = \"${{ github.event.inputs.create_asg }}\"" >> terraform.tfvars
+        echo "ami_id = \"${{ github.event.inputs.ami_id }}\"" >> terraform.tfvars
+        echo "subnet_id = \"${{ github.event.inputs.subnet_id }}\"" >> terraform.tfvars
+        echo "security_group_id = \"${{ github.event.inputs.security_group_id }}\"" >> terraform.tfvars
+        echo "key_pair_name = \"${{ github.event.inputs.key_pair_name }}\"" >> terraform.tfvars
+
     - name: Terraform Init
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: terraform init
 
     - name: Terraform Plan
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        terraform plan \
-          -var "create_vpc=${{ github.event.inputs.create_vpc }}" \
-          -var "create_ec2=${{ github.event.inputs.create_ec2 }}" \
-          -var "create_s3=${{ github.event.inputs.create_s3 }}" \
-          -var "create_asg=${{ github.event.inputs.create_asg }}"
+      run: terraform plan -var-file=terraform.tfvars
 
     - name: Terraform Apply
       if: github.event_name == 'workflow_dispatch'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        terraform apply -auto-approve \
-          -var "create_vpc=${{ github.event.inputs.create_vpc }}" \
-          -var "create_ec2=${{ github.event.inputs.create_ec2 }}" \
-          -var "create_s3=${{ github.event.inputs.create_s3 }}" \
-          -var "create_asg=${{ github.event.inputs.create_asg }}"
+      run: terraform apply -auto-approve -var-file=terraform.tfvars
